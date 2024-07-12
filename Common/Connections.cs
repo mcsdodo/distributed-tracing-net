@@ -19,4 +19,6 @@ public class KafkaSetitngs
 public class RedisSettings
 {
     public string ConnectionString { get; set; }
+    public string StreamName { get; set; }
+    public string ConsumerGroupName { get; set; }
 }
