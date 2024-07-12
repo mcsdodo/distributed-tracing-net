@@ -25,6 +25,13 @@ builder.Services.AddOpenTelemetry()
             .AddHttpClientInstrumentation()
             .AddRedisInstrumentation()
             .AddOtlpExporter();
+        
+        tracing.ConfigureRedisInstrumentation((services, configure) =>
+        {
+            var nonKeyedLazyMultiplexer =
+                services.GetRequiredService<Lazy<IConnectionMultiplexer>>();
+            configure.AddConnection("Multiplexer", nonKeyedLazyMultiplexer.Value);
+        });
     });
 
 builder.Services.TryAddSingleton<Lazy<IConnectionMultiplexer>>(provider =>

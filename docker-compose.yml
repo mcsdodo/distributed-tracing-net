@@ -27,10 +27,11 @@ services:
       dockerfile: KafkaWriter.Api/Dockerfile
     environment:
       Connections__Kafka__Brokers: kafka:29092
+      Connections__Redis__ConnectionString: 'redis:6379,abortConnect=false'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
-    depends_on: [ kafka ]
-    ports:
-      - "5052:8080"
+    depends_on: [ kafka, redis ]
+    # ports:
+      # - "5052:8080"
 
   kafkareader.worker:
     image: kafkareader.worker
