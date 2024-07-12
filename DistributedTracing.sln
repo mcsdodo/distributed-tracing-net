@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaWriter", "KafkaWriter\KafkaWriter.csproj", "{CDF1A427-0FB6-4C55-84FB-796165A95BE4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_compose", "_compose", "{7DBE0A89-0C47-4FED-A4EA-EB057B73C67E}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaReader", "KafkaReader\KafkaReader.csproj", "{AFC18510-3E4A-4BB7-AFCB-5964A6E5D515}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Otel", "Common.Otel\Common.Otel.csproj", "{E34E1249-4721-4D0D-A1B3-59644581D0E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{5515F16A-7584-476D-9E46-C03B661F9239}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDF1A427-0FB6-4C55-84FB-796165A95BE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDF1A427-0FB6-4C55-84FB-796165A95BE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDF1A427-0FB6-4C55-84FB-796165A95BE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDF1A427-0FB6-4C55-84FB-796165A95BE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFC18510-3E4A-4BB7-AFCB-5964A6E5D515}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFC18510-3E4A-4BB7-AFCB-5964A6E5D515}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFC18510-3E4A-4BB7-AFCB-5964A6E5D515}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFC18510-3E4A-4BB7-AFCB-5964A6E5D515}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E34E1249-4721-4D0D-A1B3-59644581D0E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E34E1249-4721-4D0D-A1B3-59644581D0E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E34E1249-4721-4D0D-A1B3-59644581D0E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E34E1249-4721-4D0D-A1B3-59644581D0E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5515F16A-7584-476D-9E46-C03B661F9239}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5515F16A-7584-476D-9E46-C03B661F9239}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5515F16A-7584-476D-9E46-C03B661F9239}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5515F16A-7584-476D-9E46-C03B661F9239}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
