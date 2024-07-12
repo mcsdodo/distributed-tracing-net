@@ -1,29 +1,29 @@
 using KafkaFlow;
 using KafkaFlow.Configuration;
 using KafkaFlow.OpenTelemetry;
+using KafkaFlow.Producers;
 using KafkaFlow.Serializer;
-using KafkaReader;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<Connections>(builder.Configuration.GetSection("Connections"));
-
 builder.Services.AddLogging(configure =>
 {
     configure.AddConsole();
 });
 
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("kafka-reader"))
+builder.Services
+    .AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("kafkawriter.api"))
     .WithTracing(tracing =>
     {
         tracing
             .SetSampler<AlwaysOnSampler>()
             .AddSource(KafkaFlowInstrumentation.ActivitySourceName)
             .AddHttpClientInstrumentation()
-            .AddRedisInstrumentation()
+            .AddAspNetCoreInstrumentation()
             .AddOtlpExporter();
     });
 
@@ -39,27 +39,31 @@ builder.Services.AddKafka(kafka =>
                 security.SecurityProtocol = SecurityProtocol.Plaintext;
             })
             .WithBrokers(kafkaConfig!.Kafka.Brokers.Split(','))
-            .AddConsumer(consumer =>
+            .AddProducer("api-producer", producer =>
             {
-                consumer.Topic(kafkaConfig.Kafka.TopicName);
-                consumer.WithGroupId("kafka-reader-v1");
-                consumer.WithBufferSize(100);
-                consumer.WithWorkersCount(1);
-                consumer.AddMiddlewares(middlewares =>
+                producer.DefaultTopic(kafkaConfig.Kafka.TopicName);
+                producer.AddMiddlewares(middlewares =>
                 {
-                    middlewares.AddDeserializer<JsonCoreDeserializer>();
-                    middlewares.AddTypedHandlers(h => h.AddHandler<KafkaReaderMessageHandler>());
+                    middlewares.AddSerializer<JsonCoreSerializer>();
                 });
             })
         )
         .AddOpenTelemetryInstrumentation();
 });
 
-builder.Services.AddHostedService<Worker>();
+var app = builder.Build();
 
-var host = builder.Build();
-var kafkaBus = host.Services.CreateKafkaBus();
-var applicationLifetime = host.Services.GetService<IHostApplicationLifetime>();
-await kafkaBus.StartAsync(applicationLifetime?.ApplicationStopping ?? default);
+app.MapPost("/produce", async (IProducerAccessor producers, ILogger<Program> logger) =>
+    {
+        var now = DateTime.UtcNow;
+        var message = new KafkaMessage()
+        {
+            Message = $@"It's {now}",
+            CreatedOn = now
+        };
+        await producers["api-producer"].ProduceAsync(Guid.NewGuid().ToString(), message);
+        logger.LogInformation($"Producing {message.Message}");
+    })
+    .WithName("Produce");
 
-await host.RunAsync();
+app.Run();

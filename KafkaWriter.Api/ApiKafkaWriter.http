@@ -1,0 +1,6 @@
+@ApiKafkaWriter_HostAddress = http://localhost:5052
+
+POST {{ApiKafkaWriter_HostAddress}}/produce/
+Accept: application/json
+
+###

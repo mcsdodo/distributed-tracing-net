@@ -1,8 +1,8 @@
-using KafkaWriter;
 using KafkaFlow;
 using KafkaFlow.Configuration;
 using KafkaFlow.OpenTelemetry;
 using KafkaFlow.Serializer;
+using KafkaReader;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -16,7 +16,7 @@ builder.Services.AddLogging(configure =>
 });
 
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("kafka-writer"))
+    .ConfigureResource(resource => resource.AddService("kafkareader.worker"))
     .WithTracing(tracing =>
     {
         tracing
@@ -26,7 +26,6 @@ builder.Services.AddOpenTelemetry()
             .AddRedisInstrumentation()
             .AddOtlpExporter();
     });
-
 
 builder.Services.AddKafka(kafka =>
 {
@@ -40,12 +39,16 @@ builder.Services.AddKafka(kafka =>
                 security.SecurityProtocol = SecurityProtocol.Plaintext;
             })
             .WithBrokers(kafkaConfig!.Kafka.Brokers.Split(','))
-            .AddProducer<Worker>(producer =>
+            .AddConsumer(consumer =>
             {
-                producer.DefaultTopic(kafkaConfig.Kafka.TopicName);
-                producer.AddMiddlewares(middlewares =>
+                consumer.Topic(kafkaConfig.Kafka.TopicName);
+                consumer.WithGroupId("kafka-reader-v1");
+                consumer.WithBufferSize(100);
+                consumer.WithWorkersCount(1);
+                consumer.AddMiddlewares(middlewares =>
                 {
-                    middlewares.AddSerializer<JsonCoreSerializer>();
+                    middlewares.AddDeserializer<JsonCoreDeserializer>();
+                    middlewares.AddTypedHandlers(h => h.AddHandler<KafkaReaderMessageHandler>());
                 });
             })
         )
@@ -55,5 +58,8 @@ builder.Services.AddKafka(kafka =>
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
-host.Run();
+var kafkaBus = host.Services.CreateKafkaBus();
+var applicationLifetime = host.Services.GetService<IHostApplicationLifetime>();
+await kafkaBus.StartAsync(applicationLifetime?.ApplicationStopping ?? default);
 
+await host.RunAsync();

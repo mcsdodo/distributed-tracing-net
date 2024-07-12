@@ -4,23 +4,19 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>dotnet-KafkaReader-32BF9DB7-D9E0-48EB-9696-0CAB5EC744E5</UserSecretsId>
+        <UserSecretsId>dotnet-ApiCaller-1F713147-1D1B-483E-BC44-0A9C5FCC923C</UserSecretsId>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <RootNamespace>ApiCaller</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="KafkaFlow" Version="3.0.9" />
-        <PackageReference Include="KafkaFlow.LogHandler.Console" Version="3.0.9" />
-        <PackageReference Include="KafkaFlow.LogHandler.Microsoft" Version="3.0.9" />
-        <PackageReference Include="KafkaFlow.Microsoft.DependencyInjection" Version="3.0.9" />
-        <PackageReference Include="KafkaFlow.OpenTelemetry" Version="3.0.9" />
-        <PackageReference Include="KafkaFlow.Serializer.JsonCore" Version="3.0.9" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.15" />
     </ItemGroup>
 
     <ItemGroup>

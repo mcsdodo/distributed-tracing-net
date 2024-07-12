@@ -1,20 +1,32 @@
 services:
-  kafka.reader:
-    image: kafka.reader
+
+  apicaller.worker:
+    image: apicaller.worker
     build:
       context: .
-      dockerfile: KafkaReader/Dockerfile
+      dockerfile: ApiCaller.Worker/Dockerfile
     environment:
-      Connections__Redis__ConnectionString: 'redis:6379,abortConnect=false'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      Connections__Api__BaseUrl: http://kafkawriter.api:8080
+    depends_on: [ kafkawriter.api ]
+
+  kafkawriter.api:
+    image: kafkawriter.api
+    build:
+      context: .
+      dockerfile: KafkaWriter.Api/Dockerfile
+    environment:
       Connections__Kafka__Brokers: kafka:29092
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: [ kafka ]
-  
-  kafka.writer:
-    image: kafka.writer
+    ports:
+      - "5052:8080"
+
+  kafkareader.worker:
+    image: kafkareader.worker
     build:
       context: .
-      dockerfile: KafkaWriter/Dockerfile
+      dockerfile: KafkaReader.Worker/Dockerfile
     environment:
       Connections__Redis__ConnectionString: 'redis:6379,abortConnect=false'
       Connections__Kafka__Brokers: kafka:29092
