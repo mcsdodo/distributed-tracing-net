@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Common.Redis;
 using KafkaFlow;
@@ -7,6 +8,8 @@ using KafkaFlow.Producers;
 using KafkaFlow.Serializer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using StackExchange.Redis;
@@ -27,6 +30,7 @@ builder.Services
         tracing
             .SetSampler<AlwaysOnSampler>()
             .AddSource(KafkaFlowInstrumentation.ActivitySourceName)
+            .AddSource("Redis.Producer")
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation()
             .AddRedisInstrumentation()
@@ -74,6 +78,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.TryAddSingleton<IRedisStreamsService, RedisStreamsService>();
 
 var app = builder.Build();
+var activitySource = new ActivitySource("Redis.Producer");
 
 app.MapPost("/produce", async (IProducerAccessor producers, IOptions<Connections> options,
         IRedisStreamsService streamsService, 
@@ -87,11 +92,26 @@ app.MapPost("/produce", async (IProducerAccessor producers, IOptions<Connections
         };
         await producers["api-producer"].ProduceAsync(Guid.NewGuid().ToString(), message);
 
-        var serializedMessage = JsonSerializer.Serialize(message);
-        await streamsService.StreamAddAsync(options.Value.Redis.StreamName, serializedMessage, 1);
-        
-        logger.LogInformation($"Producing {message.Message}");
+        await StreamMessage(message, streamsService, options, logger);
     })
     .WithName("Produce");
 
 app.Run();
+
+async Task StreamMessage(KafkaMessage kafkaMessage, IRedisStreamsService redisStreamsService, IOptions<Connections> options, ILogger<Program> logger)
+{
+    using var activity = activitySource.StartActivity("redis-produce", ActivityKind.Producer);
+    AddActivityToMessage(activity, kafkaMessage);
+    var serializedMessage = JsonSerializer.Serialize(kafkaMessage);
+    await redisStreamsService.StreamAddAsync(options.Value.Redis.StreamName, serializedMessage, 1);
+
+    logger.LogInformation($"Producing {kafkaMessage.Message}");
+}
+
+void AddActivityToMessage(Activity activity, KafkaMessage kafkaMessage)
+{
+    Propagators.DefaultTextMapPropagator.Inject(
+        new PropagationContext(activity.Context, Baggage.Current), 
+        kafkaMessage, 
+        (message, key, value) => message.PropagationContext = value);
+}

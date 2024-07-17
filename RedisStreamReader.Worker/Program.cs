@@ -22,6 +22,7 @@ builder.Services.AddOpenTelemetry()
     {
         tracing
             .SetSampler<AlwaysOnSampler>()
+            .AddSource("Redis.Consumer")
             .AddHttpClientInstrumentation()
             .AddRedisInstrumentation()
             .AddOtlpExporter();
