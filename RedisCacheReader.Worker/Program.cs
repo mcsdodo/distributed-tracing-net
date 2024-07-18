@@ -1,9 +1,9 @@
 using Common.Redis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using RedisCacheReader.Worker;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using RedisStream.Reader;
 using StackExchange.Redis;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -22,7 +22,7 @@ builder.Services.AddOpenTelemetry()
     {
         tracing
             .SetSampler<AlwaysOnSampler>()
-            .AddSource("Redis.Consumer")
+            .AddSource("Redis.Cache.Consumer")
             .AddHttpClientInstrumentation()
             .AddRedisInstrumentation()
             .AddOtlpExporter();
@@ -42,7 +42,8 @@ builder.Services.TryAddSingleton<Lazy<IConnectionMultiplexer>>(provider =>
 });
 
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.TryAddSingleton<IRedisStreamsService, RedisStreamsService>();
+builder.Services.TryAddSingleton<IRedisCacheService, RedisCacheService>();
+
 
 builder.Services.AddHostedService<Worker>();
 

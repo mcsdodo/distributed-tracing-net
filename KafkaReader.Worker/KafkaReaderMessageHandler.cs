@@ -2,7 +2,7 @@ using KafkaFlow;
 
 namespace KafkaReader;
 
-public class KafkaReaderMessageHandler : IMessageHandler<KafkaMessage>
+public class KafkaReaderMessageHandler : IMessageHandler<Message>
 {
     private readonly ILogger<KafkaReaderMessageHandler> _logger;
 
@@ -10,9 +10,9 @@ public class KafkaReaderMessageHandler : IMessageHandler<KafkaMessage>
     {
         _logger = logger;
     }
-    public Task Handle(IMessageContext context, KafkaMessage message)
+    public Task Handle(IMessageContext context, Message message)
     {
-        _logger.LogInformation($"Consuming {message.Message}");
+        _logger.LogInformation($"Consuming {message.Content}");
         return Task.CompletedTask;
     }
 }

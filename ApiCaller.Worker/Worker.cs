@@ -24,9 +24,16 @@ public class Worker : BackgroundService
 
             var client = _httpClientFactory.CreateClient("api-client");
             var msg = new HttpRequestMessage(HttpMethod.Post, $"/produce");
-            var response = await client.SendAsync(msg, stoppingToken);
-
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var response = await client.SendAsync(msg, stoppingToken);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException ex)
+            {
+                // Log the exception and continue the loop
+                Console.WriteLine($"Request failed: {ex.Message}");
+            }
         }
     }
 }

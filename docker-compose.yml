@@ -1,5 +1,15 @@
 services:
 
+  rediscachereader.worker:
+    image: rediscachereader.worker
+    build:
+      context: .
+      dockerfile: RedisCacheReader.Worker/Dockerfile
+    environment:
+      Connections__Redis__ConnectionString: 'redis:6379,abortConnect=false'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on: [ redis ]
+
   redisstreamreader.worker:
     image: redisstreamreader.worker
     build: 

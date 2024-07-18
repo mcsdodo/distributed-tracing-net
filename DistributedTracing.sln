@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisStreamReader.Worker", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Redis", "Common.Redis\Common.Redis.csproj", "{2D039F9E-A467-46E9-84F5-DA1C5A60DFA4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisCacheReader.Worker", "RedisCacheReader.Worker\RedisCacheReader.Worker.csproj", "{173B402E-0A8B-4400-9E2A-C3B3F535CECE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,5 +49,9 @@ Global
 		{2D039F9E-A467-46E9-84F5-DA1C5A60DFA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D039F9E-A467-46E9-84F5-DA1C5A60DFA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D039F9E-A467-46E9-84F5-DA1C5A60DFA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{173B402E-0A8B-4400-9E2A-C3B3F535CECE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{173B402E-0A8B-4400-9E2A-C3B3F535CECE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{173B402E-0A8B-4400-9E2A-C3B3F535CECE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{173B402E-0A8B-4400-9E2A-C3B3F535CECE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

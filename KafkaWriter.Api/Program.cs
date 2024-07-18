@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Common.Redis;
 using KafkaFlow;
@@ -7,6 +8,8 @@ using KafkaFlow.Producers;
 using KafkaFlow.Serializer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using StackExchange.Redis;
@@ -27,6 +30,7 @@ builder.Services
         tracing
             .SetSampler<AlwaysOnSampler>()
             .AddSource(KafkaFlowInstrumentation.ActivitySourceName)
+            .AddSource("Redis.Producer")
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation()
             .AddRedisInstrumentation()
@@ -72,26 +76,69 @@ builder.Services.TryAddSingleton<Lazy<IConnectionMultiplexer>>(provider =>
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.TryAddSingleton<IRedisStreamsService, RedisStreamsService>();
+builder.Services.TryAddSingleton<IRedisCacheService, RedisCacheService>();
 
 var app = builder.Build();
+var activitySource = new ActivitySource("Redis.Producer");
 
 app.MapPost("/produce", async (IProducerAccessor producers, IOptions<Connections> options,
-        IRedisStreamsService streamsService, 
+        IRedisStreamsService streamsService,
+        IRedisCacheService redisCacheService,
         ILogger<Program> logger) =>
     {
         var now = DateTime.UtcNow;
-        var message = new KafkaMessage()
-        {
-            Message = $@"It's {now}",
-            CreatedOn = now
-        };
-        await producers["api-producer"].ProduceAsync(Guid.NewGuid().ToString(), message);
-
-        var serializedMessage = JsonSerializer.Serialize(message);
-        await streamsService.StreamAddAsync(options.Value.Redis.StreamName, serializedMessage, 1);
-        
-        logger.LogInformation($"Producing {message.Message}");
+        await ProduceKafkaMessage(now, producers, logger);
+        CacheRedisMessage(now, redisCacheService, logger);
+        await StreamRedisMessage(now, streamsService, options, logger);
     })
     .WithName("Produce");
 
 app.Run();
+
+
+void CacheRedisMessage(DateTime now, IRedisCacheService redisCacheService, ILogger<Program> logger)
+{
+    var message = new TracedMessage()
+    {
+        Content = $@"It's {now}",
+        CreatedOn = now
+    };
+    logger.LogInformation($"Producing to redis stream {message.Content}");
+    using var activity = activitySource.StartActivity("redis-produce", ActivityKind.Producer);
+    AddActivityToMessage(activity, message);
+    var serializedMessage = JsonSerializer.Serialize(message);
+    redisCacheService.Set("redis-key", serializedMessage);
+}
+
+async Task StreamRedisMessage(DateTime now, IRedisStreamsService redisStreamsService, IOptions<Connections> options, ILogger<Program> logger)
+{
+    var message = new TracedMessage()
+    {
+        Content = $@"It's {now}",
+        CreatedOn = now
+    };
+    logger.LogInformation($"Producing to redis stream {message.Content}");
+    using var activity = activitySource.StartActivity("redis-produce", ActivityKind.Producer);
+    AddActivityToMessage(activity, message);
+    var serializedMessage = JsonSerializer.Serialize(message);
+    await redisStreamsService.StreamAddAsync(options.Value.Redis.StreamName, serializedMessage, 1);
+}
+
+void AddActivityToMessage(Activity activity, TracedMessage redisMessage)
+{
+    Propagators.DefaultTextMapPropagator.Inject(
+        new PropagationContext(activity.Context, Baggage.Current), 
+        redisMessage, 
+        (message, key, value) => message.PropagationContext = value);
+}
+
+async Task ProduceKafkaMessage(DateTime dateTime, IProducerAccessor producerAccessor, ILogger<Program> logger)
+{
+    var message = new Message()
+    {
+        Content = $@"It's {dateTime}",
+        CreatedOn = dateTime
+    };
+    logger.LogInformation($"Producing to kafka stream {message.Content}");
+    await producerAccessor["api-producer"].ProduceAsync(Guid.NewGuid().ToString(), message);
+}
