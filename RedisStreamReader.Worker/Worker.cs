@@ -37,16 +37,16 @@ public class Worker : BackgroundService
             {
                 _logger.LogInformation($"Consuming message {streamEntry.message}");
 
-                var kafkaMessage = JsonSerializer.Deserialize<KafkaMessage>(streamEntry.message);
+                var message = JsonSerializer.Deserialize<TracedMessage>(streamEntry.message);
 
-                if (kafkaMessage == null)
+                if (message == null)
                 {
                     _logger.LogError("Message could not be deserialized");
                     continue;
                 }
 
                 // Extract context from message and start activity using it
-                var parentContext = Propagators.DefaultTextMapPropagator.Extract(default, kafkaMessage, (message, key) => [message.PropagationContext]);
+                var parentContext = Propagators.DefaultTextMapPropagator.Extract(default, message, (message, key) => [message.PropagationContext]);
                 Baggage.Current = parentContext.Baggage;
                 
                 // Start the activity earlier and set the context when we have access to it? ¯\_(ツ)_/¯
