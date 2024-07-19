@@ -17,7 +17,7 @@ builder.Services.AddLogging(configure =>
 });
 
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("redisstreamreader.worker"))
+    .ConfigureResource(resource => resource.AddService("rediscachereader.worker"))
     .WithTracing(tracing =>
     {
         tracing
