@@ -48,7 +48,7 @@ public class Worker : BackgroundService
             Baggage.Current = parentContext.Baggage;
                 
             // Start the activity earlier and set the context when we have access to it? ¯\_(ツ)_/¯
-            using var activity = _activitySource.StartActivity("redis-consume", ActivityKind.Consumer, parentContext.ActivityContext);
+            using var activity = _activitySource.StartActivity("redis-get", ActivityKind.Consumer, parentContext.ActivityContext);
 
             await Task.Delay(1000, stoppingToken);
         }

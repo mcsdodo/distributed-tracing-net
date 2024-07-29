@@ -50,7 +50,7 @@ public class Worker : BackgroundService
                 Baggage.Current = parentContext.Baggage;
                 
                 // Start the activity earlier and set the context when we have access to it? ¯\_(ツ)_/¯
-                using var activity = _activitySource.StartActivity("redis-consume", ActivityKind.Consumer, parentContext.ActivityContext);
+                using var activity = _activitySource.StartActivity("redis-stream-read", ActivityKind.Consumer, parentContext.ActivityContext);
                 await _streamsService.StreamAcknowledgeAsync(_options.Redis.StreamName,
                     _options.Redis.ConsumerGroupName, streamEntry.streamEntryId);
             }
