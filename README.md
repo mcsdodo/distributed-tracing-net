@@ -10,4 +10,4 @@ Purpose of this is to see data journey across the application using multiple mes
 
 
 ### Caveats:
-1. the app does not plug in to StackExchange.Redis - we miss XREADGROUP and GET redis calls
+The app does not plug in to StackExchange.Redis - we miss XREADGROUP and GET redis calls. You cannot set parentId once an Activity is started as [discussed here](https://github.com/dotnet/runtime/issues/63883). The [RedisCacheService.Get<T> method](Common.Redis/RedisCacheService.cs#L31) tries this approach.
