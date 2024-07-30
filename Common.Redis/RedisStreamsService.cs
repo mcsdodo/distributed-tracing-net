@@ -1,14 +1,19 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using StackExchange.Redis;
 
 namespace Common.Redis;
 
 public class RedisStreamsService : IRedisStreamsService
 {
-    private const string ValueRedisEntryName = "value";
-    private const string CreatedAtRedisEntryName = "createdAtDateTimeOffset";
+    private const string MessageEntryKey = "value";
+    private const string TelemetryContextEntryKey = "ctx";
+    private const string CreatedAtEntryKey = "createdAtDateTimeOffset";
     private const int DefaultMaxLength = 10_000;
 
     private readonly TimeProvider _dateTimeProvider;
@@ -28,18 +33,31 @@ public class RedisStreamsService : IRedisStreamsService
         _database = connectionMultiplexer.Value.GetDatabase();
     }
 
+    private record RedisStreamActivityContext
+    {
+        public string Context { get; set; }
+    }
+    
     public async Task<string?> StreamAddAsync(string streamName, string message, int? streamLength = DefaultMaxLength)
     {
         try
         {
             var utcNow = _dateTimeProvider.GetUtcNow().ToString();
+
+            using var activity = new ActivitySource("Redis.Producer").StartActivity("redis-stream-write", ActivityKind.Producer);
+            var carrier = new RedisStreamActivityContext();
+            Propagators.DefaultTextMapPropagator.Inject(
+                new PropagationContext(activity!.Context, Baggage.Current), 
+                carrier, 
+                (context, _, value) => context.Context = value);
             
             return await _database.StreamAddAsync(
                 streamName,
                 streamPairs:
                 [
-                    new NameValueEntry(ValueRedisEntryName, message),
-                    new NameValueEntry(CreatedAtRedisEntryName, utcNow)
+                    new NameValueEntry(MessageEntryKey, message),
+                    new NameValueEntry(TelemetryContextEntryKey, JsonSerializer.Serialize(carrier)),
+                    new NameValueEntry(CreatedAtEntryKey, utcNow)
                 ],
                 maxLength: streamLength,
                 useApproximateMaxLength: true);
@@ -61,6 +79,22 @@ public class RedisStreamsService : IRedisStreamsService
             
             return null;
         }
+    }
+
+    private bool TryGetContext(StreamEntry streamEntry, out PropagationContext context)
+    {
+        var streamEntryDictionary =
+            streamEntry.Values.ToDictionary(x => x.Name.ToString(), x => x.Value.ToString());
+
+        if (streamEntryDictionary.TryGetValue(TelemetryContextEntryKey, out var serializedCtx))
+        {
+            var ctx = JsonSerializer.Deserialize<RedisStreamActivityContext>(serializedCtx);
+            context = Propagators.DefaultTextMapPropagator.Extract(default, ctx,
+                (entry, _) => [entry!.Context]);
+            return true;
+        }
+
+        return false;
     }
 
     public async Task<ICollection<(string streamEntryId, string message)>> StreamReadGroupAsync(
@@ -87,7 +121,12 @@ public class RedisStreamsService : IRedisStreamsService
                 if (!TryGetMessage(streamEntry, out var message) || message is null)
                     continue;
 
+                TryGetContext(streamEntry, out var parentContext);
+                Baggage.Current = parentContext.Baggage;
+                using var activity = new ActivitySource("Redis.Consumer").StartActivity("redis-stream-read",
+                    ActivityKind.Consumer, parentContext.ActivityContext);
                 messages.Add(new(streamEntry.Id!, message));
+                await StreamAcknowledgeAsync(streamName, consumerGroupName, streamEntry.Id!);
             }
 
             return messages;

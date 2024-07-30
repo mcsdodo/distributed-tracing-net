@@ -103,7 +103,7 @@ void CacheRedisMessage(DateTime now, IRedisCacheService redisCacheService, ILogg
         Content = $@"It's {now}",
         CreatedOn = now
     };
-    logger.LogInformation($"Producing to redis stream {message.Content}");
+    logger.LogInformation($"Creating redis cache entry {message.Content}");
     using var activity = activitySource.StartActivity("redis-set", ActivityKind.Producer);
     AddActivityToMessage(activity, message);
     var serializedMessage = JsonSerializer.Serialize(message);
@@ -118,8 +118,6 @@ async Task StreamRedisMessage(DateTime now, IRedisStreamsService redisStreamsSer
         CreatedOn = now
     };
     logger.LogInformation($"Producing to redis stream {message.Content}");
-    using var activity = activitySource.StartActivity("redis-stream-write", ActivityKind.Producer);
-    AddActivityToMessage(activity, message);
     var serializedMessage = JsonSerializer.Serialize(message);
     await redisStreamsService.StreamAddAsync(options.Value.Redis.StreamName, serializedMessage, 1);
 }
