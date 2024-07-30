@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Common;
 using Common.Redis;
 using KafkaFlow;
 using KafkaFlow.Configuration;
@@ -13,6 +14,7 @@ using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using StackExchange.Redis;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +32,7 @@ builder.Services
         tracing
             .SetSampler<AlwaysOnSampler>()
             .AddSource(KafkaFlowInstrumentation.ActivitySourceName)
-            .AddSource("Redis.Producer")
+            .AddSource(DistributedTracingInstrumentation.ActivitySourceName)
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation()
             .AddRedisInstrumentation()
@@ -79,7 +81,6 @@ builder.Services.TryAddSingleton<IRedisStreamsService, RedisStreamsService>();
 builder.Services.TryAddSingleton<IRedisCacheService, RedisCacheService>();
 
 var app = builder.Build();
-var activitySource = new ActivitySource("Redis.Producer");
 
 app.MapPost("/produce", async (IProducerAccessor producers, IOptions<Connections> options,
         IRedisStreamsService streamsService,
@@ -104,7 +105,7 @@ void CacheRedisMessage(DateTime now, IRedisCacheService redisCacheService, ILogg
         CreatedOn = now
     };
     logger.LogInformation($"Creating redis cache entry {message.Content}");
-    using var activity = activitySource.StartActivity("redis-set", ActivityKind.Producer);
+    using var activity = DistributedTracingInstrumentation.Source.StartActivity("redis-set", ActivityKind.Producer);
     AddActivityToMessage(activity, message);
     var serializedMessage = JsonSerializer.Serialize(message);
     redisCacheService.Set("redis-key", serializedMessage);

@@ -1,3 +1,4 @@
+using Common;
 using Common.Redis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -5,6 +6,7 @@ using RedisCacheReader.Worker;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -22,7 +24,7 @@ builder.Services.AddOpenTelemetry()
     {
         tracing
             .SetSampler<AlwaysOnSampler>()
-            .AddSource("Redis.Cache.Consumer")
+            .AddSource(DistributedTracingInstrumentation.ActivitySourceName)
             .AddHttpClientInstrumentation()
             .AddRedisInstrumentation()
             .AddOtlpExporter();

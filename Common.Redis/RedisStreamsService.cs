@@ -44,7 +44,7 @@ public class RedisStreamsService : IRedisStreamsService
         {
             var utcNow = _dateTimeProvider.GetUtcNow().ToString();
 
-            using var activity = new ActivitySource("Redis.Producer").StartActivity("redis-stream-write", ActivityKind.Producer);
+            using var activity = DistributedTracingInstrumentation.Source.StartActivity("redis-stream-write", ActivityKind.Producer);
             var carrier = new RedisStreamActivityContext();
             Propagators.DefaultTextMapPropagator.Inject(
                 new PropagationContext(activity!.Context, Baggage.Current), 
@@ -123,7 +123,7 @@ public class RedisStreamsService : IRedisStreamsService
 
                 TryGetContext(streamEntry, out var parentContext);
                 Baggage.Current = parentContext.Baggage;
-                using var activity = new ActivitySource("Redis.Consumer").StartActivity("redis-stream-read",
+                using var activity = DistributedTracingInstrumentation.Source.StartActivity("redis-stream-read",
                     ActivityKind.Consumer, parentContext.ActivityContext);
                 messages.Add(new(streamEntry.Id!, message));
                 await StreamAcknowledgeAsync(streamName, consumerGroupName, streamEntry.Id!);

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Common;
 using Common.Redis;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
@@ -10,8 +11,6 @@ public class Worker : BackgroundService
 {
     private readonly IRedisCacheService _redisCacheService;
     private readonly ILogger<Worker> _logger;
-    private readonly ActivitySource _activitySource = new("Redis.Cache.Consumer");
-
     public Worker(IRedisCacheService redisCacheService, ILogger<Worker> logger)
     {
         _redisCacheService = redisCacheService;
@@ -48,7 +47,7 @@ public class Worker : BackgroundService
             Baggage.Current = parentContext.Baggage;
                 
             // Start the activity earlier and set the context when we have access to it? ¯\_(ツ)_/¯
-            using var activity = _activitySource.StartActivity("redis-get", ActivityKind.Consumer, parentContext.ActivityContext);
+            using var activity = DistributedTracingInstrumentation.Source.StartActivity("redis-get", ActivityKind.Consumer, parentContext.ActivityContext);
 
             await Task.Delay(1000, stoppingToken);
         }
